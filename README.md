@@ -1,37 +1,22 @@
-## Welcome to GitHub Pages
+## TCP/IP 기반 멀티 프로세스 게임
 
-You can use the [editor on GitHub](https://github.com/hhhminme/net_prog_project/edit/main/README.md) to maintain and preview the content for your website in Markdown files.
+1. **정기적 밋업 일정 조율**
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+    → 매주 화요일 3:30분 (종합관, 티움 스터디룸 예약 해놓을 예정)
 
-### Markdown
+2. **코드 공유 & 협업 툴**
+    깃허브 공유 및 문서작성은 구글 다큐먼트 활용
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+3. **역할 분배 및 가이드라인 작성**
 
-```markdown
-Syntax highlighted code block
+    **동훈** - 메인 개발 및 WBS 구축
 
-# Header 1
-## Header 2
-### Header 3
+    **동규** - 서브 개발
 
-- Bulleted
-- List
+    **경진** - 서브 개발 및 문서화
 
-1. Numbered
-2. List
+    **민** - 발표, 프로젝트 관리 및 서브 개발 
 
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/hhhminme/net_prog_project/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+4. **다음 밋업동안 해야할 일**
+    1. WBS 
+    2. 이번주 내로 단일 클라이언트 게임 찾기
