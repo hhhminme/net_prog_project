@@ -7,9 +7,11 @@
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #define BOARD_SIZE 5
 #define BACKLOG 3 //연결대기 큐 숫자
-#define NUMBER 2
+#define MAX_CLNT 256
 
 void socket_settings(char *port); //소켓의 세팅
 void error_check(int validation, char *message); //실행 오류 검사
@@ -28,13 +30,17 @@ int client_board[BOARD_SIZE][BOARD_SIZE]; //클라이언트 보드판 배열
 int check_number[BOARD_SIZE*BOARD_SIZE+1]={0}; //중복검사용 배열
 int server_fd, client_fd; //소켓 파일디스크립터
 int turn[4]; //어플리케이션 프로토콜 정의
-pid_t pid; // pid
 /*
 	turn[0]=플레이어 숫자선택
 	turn[1]=클라이언트 빙고 수
 	turn[2]=서버 빙고 수
 	turn[3]=게임종료여부(0=진행중, 1=클라이언트 승리, 2=서버 승리, 3=무승부)
 */
+
+int clnt_cnt = 0;
+int clnt_socks[MAX_CLNT];
+pthread_mutex_t mutx;
+pthread_t t_id;
 
 void main(int argc, char *argv[])
 {
@@ -91,13 +97,7 @@ void socket_settings(char *port)
 {
 	int state;
 	struct sockaddr_in server_adr, client_adr;
-	struct sigaction act;
 	socklen_t client_adr_size;
-
-	act.sa_handler = read_childproc; // 자식 프로세스가 종료하면 read_childproc 호출
-	sigemptyset(&act.sa_mask); // 시그널 마스크 초기화
-	act.sa_flags = 0; // 시그널 플래그 0으로 초기화
-	state = sigaction(SIGCHLD, &act, 0); // 함수 호출시 인자로 전달, 자식 프로세스가 종료된 상황 
 
 	server_fd=socket(PF_INET, SOCK_STREAM, IPPROTO_TCP); //TCP 소켓 생성
 	error_check(server_fd, "소켓 생성");
@@ -111,14 +111,22 @@ void socket_settings(char *port)
 	error_check(bind(server_fd, (struct sockaddr *)&server_adr,sizeof(server_adr)), "소켓주소 할당"); //주소 바인딩
 	error_check(listen(server_fd, BACKLOG), "연결요청 대기");
 
+	while(1) {
+		client_adr_size=sizeof(client_adr);
+		client_fd=accept(server_fd, (struct sockaddr *)&client_adr, &client_adr_size); //특정 클라이언트와 데이터 송수신용 TCP소켓 생성
 
-	client_adr_size=sizeof(client_adr);
+		pthread_mutex_lock(&mutx);
+		clnt_socks[clnt_cnt++] = client_fd;
+		pthread_mutex_unlock(&mutx);
 
-	client_fd=accept(server_fd, (struct sockaddr *)&client_adr, &client_adr_size); //특정 클라이언트와 데이터 송수신용 TCP소켓 생성
-	printf("* %s:%d의 연결요청\n", inet_ntoa(client_adr.sin_addr), ntohs(client_adr.sin_port));
-	error_check(client_fd, "연결요청 승인");
+		pthread_create(&t_id, NULL, /*작동 시킬 함수*/, (void*)client_adr, &client_adr_size);
+		pthread_detach(t_id);
 
+		printf("* %s:%d의 연결요청\n", inet_ntoa(client_adr.sin_addr), ntohs(client_adr.sin_port));	
+		error_check(client_fd, "연결요청 승인");
+	}
 }
+
 void error_check(int validation, char* message)
 {
 	if(validation==-1)

@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
+
 #define BOARD_SIZE 5
 
 void socket_settings(char *ip, char *port); //소켓의 세팅
@@ -25,6 +28,9 @@ int turn[4]; //어플리케이션 프로토콜 정의
 	turn[2]=서버 빙고 수
 	turn[3]=게임종료여부(0=진행중, 1=클라이언트 승리, 2=서버 승리, 3=무승부)
 */
+
+pthread_t snd_thread, rcv_thread;
+void* thread_return;
 
 void main(int argc, char *argv[])
 {
@@ -85,7 +91,12 @@ void socket_settings(char *ip, char *port)
 	server_adr.sin_addr.s_addr=inet_addr(ip); //IP 할당
 
 	error_check(connect(socket_fd, (struct sockaddr *)&server_adr, sizeof(server_adr)), "연결 요청");
+	pthread_create(&snd_thread, NULL, /*작동하고 싶은 함수*/, (void*)&socket_fd);
+	pthread_create(&rcv_thread, NULL, /*작동하고 싶은 함수*/, (void*)&socket_fd);
+	pthread_join(snd_thread, &thread_return);
+	pthread_join(rcv_thread, &thread_return);
 }
+
 void error_check(int validation, char* message)
 {
 	if(validation==-1)
