@@ -24,6 +24,7 @@ void board_X(int board[][BOARD_SIZE], int number); //빙고판에 X 체크
 void game_run(); //게임 진행 및 승리여부 체크
 int bingo_check(int board[][BOARD_SIZE]); //빙고 줄 검사, 게임 종료조건 검사
 void read_childproc(int sig);
+void* handle_clnt(void *arg);
 
 int server_board[BOARD_SIZE][BOARD_SIZE]; //서버 보드판 배열
 int client_board[BOARD_SIZE][BOARD_SIZE]; //클라이언트 보드판 배열
@@ -59,34 +60,7 @@ void main(int argc, char *argv[])
 	client_game_init();
 	game_print(0);
 
-	for(i=1;i<=BOARD_SIZE*BOARD_SIZE;i++)
-	{
-		if(i%2==1)
-			client_turn();
-		else
-		{
-			sleep(1); //대전을 체감하기위한 1초의 딜레이
-			server_turn();
-		}
-
-		game_print(i);
-		for(j=0;j<4;j++) printf("turn[%d]=%d\n", j, turn[j]); //디버깅용
-		if(turn[3]==1)
-		{
-			printf("클라이언트 승리\n");
-			break;
-		}
-		else if(turn[3]==2)
-		{
-			printf("서버 승리\n");
-			break;
-		}
-		else if(turn[3]==3)
-		{
-			printf("무승부\n");
-			break;
-		}
-	}
+	handle_clnt(argv[1]);
 
 	close(client_fd);
 	close(server_fd);
@@ -119,7 +93,7 @@ void socket_settings(char *port)
 		clnt_socks[clnt_cnt++] = client_fd;
 		pthread_mutex_unlock(&mutx);
 
-		pthread_create(&t_id, NULL, /*작동 시킬 함수*/, (void*)client_adr, &client_adr_size);
+		pthread_create(&t_id, NULL, handle_clnt, (void*)&client_adr);
 		pthread_detach(t_id);
 
 		printf("* %s:%d의 연결요청\n", inet_ntoa(client_adr.sin_addr), ntohs(client_adr.sin_port));	
@@ -316,4 +290,38 @@ void read_childproc(int sig)
 	int status;
 	pid = waitpid(-1, &status, WNOHANG);
 	printf("removed proc id: %d \n", pid);
+}
+
+void* handle_clnt(void *arg) {
+	int clnt_sock=*((int*)arg);
+	int i, j;
+	for(i=1;i<=BOARD_SIZE*BOARD_SIZE;i++)
+	{
+		if(i%2==1)
+			client_turn();
+		else
+		{
+			sleep(1); //대전을 체감하기위한 1초의 딜레이
+			server_turn();
+		}
+
+		game_print(i);
+		for(j=0;j<4;j++) printf("turn[%d]=%d\n", j, turn[j]); //디버깅용
+		if(turn[3]==1)
+		{
+			printf("클라이언트 승리\n");
+			break;
+		}
+		else if(turn[3]==2)
+		{
+			printf("서버 승리\n");
+			break;
+		}
+		else if(turn[3]==3)
+		{
+			printf("무승부\n");
+			break;
+		}
+	}
+
 }
