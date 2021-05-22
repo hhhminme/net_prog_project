@@ -21,6 +21,7 @@ void send_msg(char* msg, int len);
 int turn[4]; 
 int clnt_cnt = 0;
 int clnt_socks[MAX_CLNT];
+int msgQ[5][BUF_SIZE];
 pthread_mutex_t mutx;
 pthread_t t_id;
 
@@ -78,9 +79,29 @@ void* handle_clnt(void* arg) {
 	int clnt_sock = *((int*)arg);
 	int str_len = 0, i;
 	char msg[BUF_SIZE];
-
-	while ((str_len = read(clnt_sock, msg, sizeof(msg))) != 0)
-		send_msg(msg, str_len);
+	//handle_clnt의 메세지 수신부분
+	while ((str_len = read(clnt_sock, msg, sizeof(msg))) != 0){
+		printf("msg0: %s\n msg1: %s\n msg2: %s\n msg3: %s\n",msgQ[0],msgQ[1],msgQ[2],msgQ[3]);
+		if(strcmp(msg[0],"C")==0){
+			/*
+			strcpy(msgQ[3],msgQ[2]);
+			strcpy(msgQ[2],msgQ[1]);
+			strcpy(msgQ[1],msgQ[0]);
+			strcpy(msgQ[0],msg);
+			
+			send_msg("msg0:", str_len);
+			send_msg(msg[0], str_len);
+			send_msg("msg1:", str_len);
+			send_msg(msg[1], str_len);
+			send_msg("msg2:", str_len);
+			send_msg(msg[2], str_len);
+			send_msg("msg3:", str_len);
+			send_msg(msg[3], str_len);
+			*/
+		}
+		else
+		
+	}
 	pthread_mutex_lock(&mutx);
 	for (i = 0; i < clnt_cnt; i++) //eliminated disconnections
 	{
