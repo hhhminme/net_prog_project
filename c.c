@@ -99,6 +99,7 @@ void* send_msg(void* arg) {
 			//초기화된 msg[]에 채팅 내역을 다시 받는다.
 			chatUI(1);
 			fgets(msg, BUF_SIZE, stdin);
+			msg[strlen(msg)-1]='\0';//개행문자 제거
 			//msg[]의 맨앞에 C를 끼워넣어서 서버에게 보낸다. 서버가 문자열을 클라이언트에게 재송신하면 recive_msg가 문자열이 C로 시작하는지if처리한다.
 			chat[0]='C';
 			for(int i=0; i<BUF_SIZE-1;i++){
