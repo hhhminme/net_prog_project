@@ -15,12 +15,14 @@
 
 void* send_msg(void* arg);
 void* recv_msg(void* arg);
+void* game_set(void* arg);
 
 void error_handling(char* mse); 
 void game_print(int any);
 void chatUI(int s);
 
 int Game_on=0;
+int my_turn=0;
 int board[BOARD_SIZE][BOARD_SIZE];
 char name[NAME_SIZE]="[DEFAULT]";
 char chat[NAME_SIZE+BUF_SIZE+1];
@@ -73,8 +75,13 @@ int main(int argc, char* argv[])
 		error_handling("connect err");
 	pthread_create(&snd_thread, NULL, send_msg, (void*)&sock);
 	pthread_create(&rcv_thread, NULL, recv_msg, (void*)&sock);
+	pthread_create(&gam_thread, NULL, game_set, (void*)&sock);
+	//pthread_detach(snd_thread);
+	//pthread_detach(rcv_thread);
+	//pthread_detach(gam_thread);
 	pthread_join(snd_thread, &thread_return);
 	pthread_join(rcv_thread, &thread_return);
+	pthread_join(gam_thread, &thread_return);
 
 	close(sock);
 	return 0;
@@ -84,10 +91,9 @@ void* send_msg(void* arg) {
 	int sock = *((int*)arg);
 	char msg[BUF_SIZE];
 	sprintf(chat,"%s%s","N",name);//이름을 최초 1회 보내는걸로 검증한다.
-	write(sock, chat, strlen(chat)); printf("name sended");
+	write(sock, chat, strlen(chat));
 	while (1) 
 	{
-		chatUI(0);
 		fgets(msg, BUF_SIZE-1, stdin);
 		if (!strcmp(msg, "q\n")||!strcmp(msg,"Q\n"))//Q를 입력하면 종료로 인식한다.
 		{
@@ -140,9 +146,37 @@ void* recv_msg(void* arg) {
 		{
 			Game_on=1;
 		}
-		fputs(msg, stdout);
+		
 	}
 	return NULL;
+}
+void* game_set(void* arg){
+	int sock = *((int*)arg);
+	fd_set reads, cpy_reads;
+	int fd_max, str_len, fd_num;
+	struct timeval timeout;
+	FD_ZERO(&reads);
+	FD_SET(sock, &reads);
+	fd_max=sock;
+	
+	while(1){
+		cpy_reads=reads;
+		timeout.tv_sec=5;
+		timeout.tv_usec=5000;
+		if((fd_num=select(fd_max+1,&cpy_reads,0,0,&timeout))==-1) break;
+		if(fd_num==0)continue;
+		for(int i=0; i<fd_max+1;i++){
+			if(FD_ISSET(i,&cpy_reads)){
+				if(Game_on==1){game_print(0);}
+				printf("=====================================\n");
+				if(my_turn==1) printf("its your turn");
+				else printf("\n");
+				printf("=====================================\n");
+				printf("C to chat,R to Ready, Q to quit\n");
+				system("clear");
+			}		
+		}
+	}
 }
 
 void error_handling(char* msg)
