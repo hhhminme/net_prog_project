@@ -19,17 +19,17 @@ void error_handling(char* mse);
 void* handle_clnt(void* arg);
 void* handle_game(void* arg);
 void* status_board(void* arg);
-void send_msg(char* msg, int len);
+void send_msg(char* msg, int len,int index);
 
-int turn[4]; 
 
 int clnt_cnt = 0;
 int clnt_socks[MAX_CLNT];
+int Game_on=0;//게임이 시작되면 1이 되고, 추가 접속을 막는다. 게임이 끝나면 2가 되고, exit한다(쓰레드정리+동적할당정리+main끝)
 struct Clnt{
 	char IP[16];
 	int PORT;
 	char NAME[10];//동적할당으로 수정전에 NAME_SIZE를 10으로 임의 
-	int R;
+	int R;//0은 준비중 1은 준비완료 2는 
 };
 struct Clnt C[MAX_CLNT];
 char msgQ[5][NAME_SIZE+BUF_SIZE];
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	pthread_create(&t_id3, NULL, handle_game, (void*)&clnt_sock);
 	pthread_detach(t_id3);
 	
-	while (1) {
+	while (Game_on!=1) {
 		int str_len;
 		char msg[1+NAME_SIZE+BUF_SIZE];
 		clnt_adr_sz = sizeof(clnt_adr);
@@ -88,8 +88,10 @@ int main(int argc, char* argv[])
 		C[clnt_cnt].R=0;//클라이언트가 레디하지않음으로 설정
 		clnt_cnt++;
 	}
+	if(Game_on!=2){
 	close(serv_sock);
 	return 0;
+	}
 }
 
 void error_handling(char* msg){
@@ -106,37 +108,44 @@ void* handle_clnt(void* arg) {
 				msg[i]='\0';
 			}
 	//handle_clnt의 메세지 수신부분
+	send_msg("",1,0);//서로 연결이 확정되면 의미없는 문장을 보내서, 클라이언트의 RCV와 game_print를 활성화시킨다
 	while ((str_len = read(clnt_sock, msg, sizeof(msg))) != 0)
 	{
+		printf("[Debug]red is it correct? :%s\n",msg);
+		char tmpName[10]; //
+			for(int i=0,j=0;i<10;i++){
+			if(msg[i+1]!=32) {tmpName[j++]=msg[i+1];}
+			}
+		char tmpMsg[100]; //
+			for(int i=0;i<111;i++){
+			tmpMsg[i]=msg[i+11];
+			}
+		
 		if(msg[0]==78) //N로 시작하는 네임세팅이 오면
 		{
-			char tmp[10];
-			for(int i=0; i<10;i++){
-			tmp[i]=msg[i+1];
-			}
-			strcpy(C[clnt_cnt-1].NAME,tmp);
+			strcpy(C[clnt_cnt-1].NAME,tmpName);
 		}
 		
-		printf("[Debug]red\n");
 		if(msg[0]==67) //C로 시작하는 채팅내역이오면
 		{
-		//for(int i=0; i<BUF_SIZE-1;i++){
-		//msg[i]=msg[i+1];
+			char tmpNameMsg[110];
+			//sprintf(tmpNameMsg,"%s",tmpMsg);
+			sprintf(tmpNameMsg,"%s%s",tmpName,tmpMsg);
 		strcpy(msgQ[4],msgQ[3]);
 		strcpy(msgQ[3],msgQ[2]);
 		strcpy(msgQ[2],msgQ[1]);
 		strcpy(msgQ[1],msgQ[0]);
-		strcpy(msgQ[0],msg);
+		strcpy(msgQ[0],tmpNameMsg);
+		send_msg(msgQ[0], 1+NAME_SIZE+BUF_SIZE,1);
 		}
+		
 		if(msg[0]==82) //R로 시작하는 레디내역이오면
 		{
-			char tmp[10];
-			for(int i=0; i<10;i++){
-				tmp[i]=msg[i+1];
-			}
 			for(int i=0; i<clnt_cnt;i++){
-				if(strcmp(C[i].NAME,tmp)==0){C[i].R++;}
+				if(strcmp(C[i].NAME,tmpName)==0){C[i].R++;}
+				//printf("C[i].NAME:%s tmp2:%s tmp:%s\n",C[i].NAME,tmp2,tmp);
 			}
+			send_msg("",1,2);//의미없는문자열을 보내서 클라이언트쪽 화면을 제어해준다
 		}
 	}
 		//send_msg(msg, str_len);
@@ -159,13 +168,24 @@ void* handle_clnt(void* arg) {
 	
 }
 void* handle_game(void* arg){
+	int turn[MAX_CLNT]={0,};
 	while(1){
+		if(clnt_cnt>1){
 		int ready_check=1;
 		for(int i=0; i<clnt_cnt;i++)
 		{
 			ready_check*=C[i].R;
 		}
-		if(ready_check!=0) send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE);
+		if(ready_check==1)
+		{
+			send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE,3);
+			sleep(1);
+			send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE,3);//왜 인지 모르겠지만 가장 전송누락이 잦은 부분. 주의
+			for(int i=0;i<clnt_cnt;i++){
+			C[i].R=2;
+			}
+		}
+		}
 	}
 }
 void* status_board(void* arg){
@@ -173,7 +193,10 @@ void* status_board(void* arg){
 	//접속클라이언트 현황
 		printf("CLNT\t|IP\t\t|PORT\t|NAME\t|Ready\t|\n");
 		for(int i=0; i<clnt_cnt;i++){
-		printf("%d\t|%s\t|%d\t|%s\t|%d\t|\n",i,C[i].IP,C[i].PORT,C[i].NAME,C[i].R);
+		printf("%d\t|%s\t|%d\t|%s\t|",i,C[i].IP,C[i].PORT,C[i].NAME);
+		if(C[i].R==0)printf("WAIT\t\t|\n");
+		if(C[i].R==1)printf("READY\t\t|\n");
+		if(C[i].R==2)printf("INGAME\t\t|\n");
 		}
 	//채팅현황
 		printf("\n================================\n");
@@ -188,10 +211,12 @@ void* status_board(void* arg){
 		system("clear");
 	}
 }
-void send_msg(char* msg, int len) {
+void send_msg(char* msg, int len, int index) {//index는 디버그용, 아무값이나 넣어도됌
 	int i;
 	pthread_mutex_lock(&mutx);
 	for (i = 0; i < clnt_cnt; i++)
 		write(clnt_socks[i], msg, len);
 	pthread_mutex_unlock(&mutx);
+	printf("[Debug] %d sendALL\n",index);
 }
+
