@@ -21,14 +21,19 @@ void error_handling(char* mse);
 void game_print(int any);
 void chatUI(int s);
 
+//게임관련 구조체로 묶을 변수
 int Game_on=0;
+int game_turn=0;
 int my_turn=0;
+int my_bingo=0;
 int board[BOARD_SIZE][BOARD_SIZE];
-char name[NAME_SIZE]="[DEFAULT]";
+
+//채팅관련 구조체로 묶을변수
 char chat[NAME_SIZE+BUF_SIZE+1];
 char msgQ[5][NAME_SIZE+BUF_SIZE];
 
-	
+//main의 매개변수용 char
+char name[NAME_SIZE]="[DEFAULT]";
 
 int main(int argc, char* argv[])
 {
@@ -91,7 +96,7 @@ int main(int argc, char* argv[])
 void* send_msg(void* arg) {
 	int sock = *((int*)arg);
 	char msg[BUF_SIZE];
-	sprintf(chat,"%1s%10s","N",name);//이름을 최초 1회 보내는걸로 검증한다.
+	sprintf(chat,"%1s%10s","S",name);//이름을 최초 1회 보내는걸로 검증한다.
 	write(sock, chat, strlen(chat));
 	while (1) 
 	{	
@@ -117,6 +122,17 @@ void* send_msg(void* arg) {
 			write(sock, chat, strlen(chat));
 			printf("[Debug]writed\n");
 		}
+		if(my_turn==1&&!strcmp(msg,"N\n")) //내턴일때 N을 입력하면 숫자를 입력받는다.
+		{
+			chatUI(1);
+			fgets(msg, BUF_SIZE, stdin);
+			msg[strlen(msg)-1]='\0';//개행문자 제거
+			//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
+			sprintf(chat,"%1s%10s%s","N",name,msg);
+			write(sock, chat, strlen(chat));
+			my_turn--;
+			printf("[Debug]writed\n");
+		}
 		else if(!strcmp(msg, "r\n")||!strcmp(msg,"R\n")) //R를 입력하면 레디내역을 서버에보낸다.
 		{
 				for(int i=0; i<BUF_SIZE;i++)
@@ -126,9 +142,6 @@ void* send_msg(void* arg) {
 			sprintf(chat,"%1s%10s","R",name);
 			write(sock, chat, strlen(chat));
 			printf("[Debug]writed\n");
-		}
-		else if(strcmp(msg, "n\n")&&Game_on!=0) //n을 입력하였고, 게임이 시작되었으며, 내턴이면 숫자를 서버에 보낸다.
-		{
 		}
 	}
 	return NULL;
@@ -141,6 +154,14 @@ void* recv_msg(void* arg) {
 	while (1)
 	{
 		if(str_len=read(sock, msg, 1+BUF_SIZE+NAME_SIZE)!=0){
+			char tmpName[10]; //
+			for(int i=0,j=0;i<10;i++){
+			if(msg[i+1]!=32) {tmpName[j++]=msg[i+1];}
+			}
+			char tmpMsg[100]; //
+			for(int i=0;i<111;i++){
+			tmpMsg[i]=msg[i+11];
+			}
 			system("clear");
 			if(strcmp(msg,"GAMEON")==0) Game_on=1;
 			if(msg[0]==67) //C로 시작하는 채팅내역이오면
@@ -152,6 +173,14 @@ void* recv_msg(void* arg) {
 				strcpy(msgQ[2],msgQ[1]);
 				strcpy(msgQ[1],msgQ[0]);
 				strcpy(msgQ[0],msg);
+			}
+			if(msg[0]==84)//T로 시작하는 제어문이 오면
+			{
+				if(strcmp(tmpName, name)==0) my_turn++;
+			}
+			if(msg[0]==78)//N로 시작하는 제어문이 오면
+			{
+				if(strcmp(tmpName,"SERV")==0)printf("GET NUMBER!");
 			}
 			//UI표시부
 			game_print(0);
@@ -212,12 +241,12 @@ void game_print(int any)
 		printf("\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	}
 	printf("=====================================\n");
-	if(my_turn==1) printf("its your turn");
+	if(my_turn==1) printf("its your turn\n");
 	else printf("\n");
 	printf("=====================================\n");
 	printf("5:%s \n4:%s \n3:%s \n2:%s \n1:%s \n",msgQ[0],msgQ[1],msgQ[2],msgQ[3],msgQ[4]);
 	printf("=====================================\n");
-	printf("C to chat,R to Ready, Q to quit\n");
+	printf("C to chat,R to Ready,N to Number Q to quit\n");
 }
 void chatUI(int s){
 	switch(s){
@@ -225,7 +254,7 @@ void chatUI(int s){
 			printf("Q(quit)C(chat)R(ready)\n");
 			break;
 		case 1:
-			printf("input chat : ");
+			printf("input : ");
 			break;
 		default :
 			printf("wrong chatUI call\n");
