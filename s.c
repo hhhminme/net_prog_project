@@ -121,7 +121,7 @@ void* handle_clnt(void* arg) {
 			tmpMsg[i]=msg[i+11];
 			}
 		
-		if(msg[0]==78) //N로 시작하는 네임세팅이 오면
+		if(msg[0]==83) //S로 시작하는 네임세팅이 오면
 		{
 			strcpy(C[clnt_cnt-1].NAME,tmpName);
 		}
@@ -147,6 +147,32 @@ void* handle_clnt(void* arg) {
 			}
 			send_msg("",1,2);//의미없는문자열을 보내서 클라이언트쪽 화면을 제어해준다
 		}
+		
+		if(msg[0]==78) //N로 시작하는 숫자내역이오면
+		{
+			for(int i=0; i<clnt_cnt;i++)
+			{
+				if(strcmp(C[i].NAME,tmpName)==0)
+				{
+					C[i].R=2;
+					char tmp[1+NAME_SIZE+BUF_SIZE];
+					if(i==clnt_cnt-1){
+						C[0].R=3;
+						sprintf(tmp,"%1s%10s","T",C[0].NAME);
+						send_msg(tmp,1+NAME_SIZE+BUF_SIZE,5);		
+					}
+					else{
+						C[i+1].R=3;
+						sprintf(tmp,"%1s%10s","T",C[i+1].NAME);
+						send_msg(tmp,1+NAME_SIZE+BUF_SIZE,5);		
+					}
+					char tmp2[1+NAME_SIZE+BUF_SIZE];
+					sprintf(tmp2,"%1s%10s","N","SERV");
+					send_msg(tmp2,1+NAME_SIZE+BUF_SIZE,5);						
+				}
+				
+			}
+		}
 	}
 		//send_msg(msg, str_len);
 	
@@ -169,34 +195,42 @@ void* handle_clnt(void* arg) {
 }
 void* handle_game(void* arg){
 	int turn[MAX_CLNT]={0,};
-	while(1){
-		if(clnt_cnt>1){
-		int ready_check=1;
-		for(int i=0; i<clnt_cnt;i++)
+	while(1)
+	{
+		if(clnt_cnt>1&&C[0].R==1)
 		{
-			ready_check*=C[i].R;
-		}
-		if(ready_check==1)
-		{
-			send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE,3);
-			sleep(1);
-			send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE,3);//왜 인지 모르겠지만 가장 전송누락이 잦은 부분. 주의
-			for(int i=0;i<clnt_cnt;i++){
-			C[i].R=2;
+			int sum=0;
+			for(int i=0; i<clnt_cnt;i++)
+			{
+				sum+=C[i].R;
 			}
-		}
+			if(sum==clnt_cnt)
+			{	
+				send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE,3);
+				sleep(1);
+				send_msg("GAMEON",1+BUF_SIZE+NAME_SIZE,3);//왜 인지 모르겠지만 가장 전송누락이 잦은 부분. 주의
+				for(int i=0;i<clnt_cnt;i++)
+				{
+					C[i].R=2;
+				}
+				char tmp[1+BUF_SIZE+NAME_SIZE];
+				C[0].R=3;
+				sprintf(tmp,"%1s%10s","T",C[0].NAME);
+				send_msg(tmp,1+BUF_SIZE+NAME_SIZE,4);
+			}
 		}
 	}
 }
 void* status_board(void* arg){
 	while(1){
 	//접속클라이언트 현황
-		printf("CLNT\t|IP\t\t|PORT\t|NAME\t|Ready\t|\n");
+		printf("CLNT\t|IP\t\t|PORT\t|NAME\t|Ready\t\t|\n");
 		for(int i=0; i<clnt_cnt;i++){
 		printf("%d\t|%s\t|%d\t|%s\t|",i,C[i].IP,C[i].PORT,C[i].NAME);
 		if(C[i].R==0)printf("WAIT\t\t|\n");
 		if(C[i].R==1)printf("READY\t\t|\n");
 		if(C[i].R==2)printf("INGAME\t\t|\n");
+		if(C[i].R==3)printf("TRUN\t\t|\n");
 		}
 	//채팅현황
 		printf("\n================================\n");
@@ -206,6 +240,7 @@ void* status_board(void* arg){
 		}
 	//게임 현황
 		printf("\n================================\n");
+		
 	//딜레이
 		sleep(5);
 		system("clear");
