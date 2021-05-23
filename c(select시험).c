@@ -26,6 +26,7 @@ int my_turn=0;
 int board[BOARD_SIZE][BOARD_SIZE];
 char name[NAME_SIZE]="[DEFAULT]";
 char chat[NAME_SIZE+BUF_SIZE+1];
+char msgQ[5][NAME_SIZE+BUF_SIZE];
 
 	
 
@@ -82,32 +83,31 @@ int main(int argc, char* argv[])
 	pthread_join(snd_thread, &thread_return);
 	pthread_join(rcv_thread, &thread_return);
 	pthread_join(gam_thread, &thread_return);
-
+	if(1){
 	close(sock);
-	return 0;
+	return 0;}
 }
 
 void* send_msg(void* arg) {
 	int sock = *((int*)arg);
 	char msg[BUF_SIZE];
-	sprintf(chat,"%s%s","N",name);//이름을 최초 1회 보내는걸로 검증한다.
+	sprintf(chat,"%1s%10s","N",name);//이름을 최초 1회 보내는걸로 검증한다.
 	write(sock, chat, strlen(chat));
 	while (1) 
-	{
-		fgets(msg, BUF_SIZE-1, stdin);
+	{	
+		//배열버퍼, stdin버퍼 초기화
+		for(int i=0; i<BUF_SIZE;i++)
+			{
+				msg[i]='\0';
+			}
+		fgets(msg, BUF_SIZE, stdin);
 		if (!strcmp(msg, "q\n")||!strcmp(msg,"Q\n"))//Q를 입력하면 종료로 인식한다.
 		{
 			close(sock);
 			exit(0);
 		}
-		else if(!strcmp(msg, "c\n")||!strcmp(msg,"C\n")) //C를 입력하면 채팅입력창을 출력한다.
+		if(!strcmp(msg, "c\n")||!strcmp(msg,"C\n")) //C를 입력하면 채팅입력창을 출력한다.
 		{
-			//C를 인식하였다. 채팅을 입력받기전에 msg[]를 null로 초기화 하여 오류를 방지한다.
-			for(int i=0; i<BUF_SIZE;i++)
-			{
-				msg[i]='\0';
-			}
-			//초기화된 msg[]에 채팅 내역을 다시 받는다.
 			chatUI(1);
 			fgets(msg, BUF_SIZE, stdin);
 			msg[strlen(msg)-1]='\0';//개행문자 제거
@@ -123,7 +123,7 @@ void* send_msg(void* arg) {
 				{
 				msg[i]='\0';
 				}
-			sprintf(chat,"%s%s","R",name);
+			sprintf(chat,"%1s%10s","R",name);
 			write(sock, chat, strlen(chat));
 			printf("[Debug]writed\n");
 		}
@@ -137,46 +137,33 @@ void* recv_msg(void* arg) {
 	int sock = *((int*)arg);
 	char msg[BUF_SIZE];
 	char chat[BUF_SIZE];
-	int str_len;
-	while (1) {
-		str_len = read(sock, msg, 1+BUF_SIZE+NAME_SIZE);
-		if (str_len == -1)
-			return (void*)-1;
-		if(strcmp(msg,"GAMEON")==0)
-		{
-			Game_on=1;
+	ssize_t str_len;
+	while (1)
+	{
+		if(str_len=read(sock, msg, 1+BUF_SIZE+NAME_SIZE)!=0){
+			system("clear");
+			if(strcmp(msg,"GAMEON")==0) Game_on=1;
+			if(msg[0]==67) //C로 시작하는 채팅내역이오면
+			{
+				//for(int i=0; i<BUF_SIZE-1;i++){
+				//msg[i]=msg[i+1];
+				strcpy(msgQ[4],msgQ[3]);
+				strcpy(msgQ[3],msgQ[2]);
+				strcpy(msgQ[2],msgQ[1]);
+				strcpy(msgQ[1],msgQ[0]);
+				strcpy(msgQ[0],msg);
+			}
+			//UI표시부
+			game_print(0);
+		
 		}
+		//if(str_len==1+BUF_SIZE+NAME_SIZE) game_print(0);
 		
 	}
 	return NULL;
 }
 void* game_set(void* arg){
 	int sock = *((int*)arg);
-	fd_set reads, cpy_reads;
-	int fd_max, str_len, fd_num;
-	struct timeval timeout;
-	FD_ZERO(&reads);
-	FD_SET(sock, &reads);
-	fd_max=sock;
-	
-	while(1){
-		cpy_reads=reads;
-		timeout.tv_sec=5;
-		timeout.tv_usec=5000;
-		if((fd_num=select(fd_max+1,&cpy_reads,0,0,&timeout))==-1) break;
-		if(fd_num==0)continue;
-		for(int i=0; i<fd_max+1;i++){
-			if(FD_ISSET(i,&cpy_reads)){
-				if(Game_on==1){game_print(0);}
-				printf("=====================================\n");
-				if(my_turn==1) printf("its your turn");
-				else printf("\n");
-				printf("=====================================\n");
-				printf("C to chat,R to Ready, Q to quit\n");
-				system("clear");
-			}		
-		}
-	}
 }
 
 void error_handling(char* msg)
@@ -188,9 +175,8 @@ void error_handling(char* msg)
 
 void game_print(int any)
 {
+	if(Game_on==1){
 	int i, j, x;
-
-	system("clear"); 
 	printf("%c[1;33m", 27); 
 
 	printf("@------ client bingo ------@\n");
@@ -221,6 +207,17 @@ void game_print(int any)
 		printf("number: %d\n", 1);
 		printf("bingo count: %d\n", 1);
 	}*/
+	}
+	else{
+		printf("\n\n\n\n\n\n\n\n\n\n\n\n\n");
+	}
+	printf("=====================================\n");
+	if(my_turn==1) printf("its your turn");
+	else printf("\n");
+	printf("=====================================\n");
+	printf("5:%s \n4:%s \n3:%s \n2:%s \n1:%s \n",msgQ[0],msgQ[1],msgQ[2],msgQ[3],msgQ[4]);
+	printf("=====================================\n");
+	printf("C to chat,R to Ready, Q to quit\n");
 }
 void chatUI(int s){
 	switch(s){
