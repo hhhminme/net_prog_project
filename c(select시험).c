@@ -22,11 +22,17 @@ void game_print(int any);
 void chatUI(int s);
 
 //게임관련 구조체로 묶을 변수
-int Game_on=0;
-int game_turn=0;
-int my_turn=0;
-int my_bingo=0;
+struct Game{
+int Game_on;
+int game_turn;
+int my_turn;
+int my_bingo;
 int board[BOARD_SIZE][BOARD_SIZE];
+int bingo[BOARD_SIZE][BOARD_SIZE];
+
+};
+struct MyGame ={0,0,0,0};
+
 
 //채팅관련 구조체로 묶을변수
 char chat[NAME_SIZE+BUF_SIZE+1];
