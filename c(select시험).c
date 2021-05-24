@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 				if (check_number[temp] == 0) 
 				{
 					check_number[temp] = 1;
-					board[i][j] = temp + 1;
+					MyGame.board[i][j] = temp + 1;
 					break;
 				}
 			}
@@ -128,7 +128,7 @@ void* send_msg(void* arg) {
 			write(sock, chat, strlen(chat));
 			printf("[Debug]writed\n");
 		}
-		if(my_turn==1&&!strcmp(msg,"N\n")) //내턴일때 N을 입력하면 숫자를 입력받는다.
+		if(MyGame.my_turn==1&&!strcmp(msg,"N\n")) //내턴일때 N을 입력하면 숫자를 입력받는다.
 		{
 			chatUI(1);
 			fgets(msg, BUF_SIZE, stdin);
@@ -136,7 +136,7 @@ void* send_msg(void* arg) {
 			//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
 			sprintf(chat,"%1s%10s%s","N",name,msg);
 			write(sock, chat, strlen(chat));
-			my_turn--;
+			MyGame.my_turn--;
 			printf("[Debug]writed\n");
 		}
 		else if(!strcmp(msg, "r\n")||!strcmp(msg,"R\n")) //R를 입력하면 레디내역을 서버에보낸다.
@@ -169,7 +169,7 @@ void* recv_msg(void* arg) {
 			tmpMsg[i]=msg[i+11];
 			}
 			system("clear");
-			if(strcmp(msg,"GAMEON")==0) Game_on=1;
+			if(strcmp(msg,"GAMEON")==0) MyGame.Game_on=1;
 			if(msg[0]==67) //C로 시작하는 채팅내역이오면
 			{
 				//for(int i=0; i<BUF_SIZE-1;i++){
@@ -182,7 +182,7 @@ void* recv_msg(void* arg) {
 			}
 			if(msg[0]==84)//T로 시작하는 제어문이 오면
 			{
-				if(strcmp(tmpName, name)==0) my_turn++;
+				if(strcmp(tmpName, name)==0) MyGame.my_turn++;
 			}
 			if(msg[0]==78)//N로 시작하는 제어문이 오면
 			{
@@ -210,7 +210,7 @@ void error_handling(char* msg)
 
 void game_print(int any)
 {
-	if(Game_on==1){
+	if(MyGame.Game_on==1){
 	int i, j, x;
 	printf("%c[1;33m", 27); 
 
@@ -229,7 +229,7 @@ void game_print(int any)
 				printf("%c[1;33m", 27);
 			}
 			else
-				printf("| %2d ", board[i][j]);
+				printf("| %2d ", MyGame.board[i][j]);
 		}
 		printf("|\n");
 		printf("+----+----+----+----+----+\n");
@@ -247,7 +247,7 @@ void game_print(int any)
 		printf("\n\n\n\n\n\n\n\n\n\n\n\n\n");
 	}
 	printf("=====================================\n");
-	if(my_turn==1) printf("its your turn\n");
+	if(MyGame.my_turn==1) printf("its your turn\n");
 	else printf("\n");
 	printf("=====================================\n");
 	printf("5:%s \n4:%s \n3:%s \n2:%s \n1:%s \n",msgQ[0],msgQ[1],msgQ[2],msgQ[3],msgQ[4]);
