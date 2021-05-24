@@ -31,7 +31,7 @@ int board[BOARD_SIZE][BOARD_SIZE];
 int bingo[BOARD_SIZE][BOARD_SIZE];
 
 };
-struct MyGame ={0,0,0,0};
+struct Game MyGame ={0,};
 
 
 //채팅관련 구조체로 묶을변수
@@ -134,7 +134,7 @@ void* send_msg(void* arg) {
 			fgets(msg, BUF_SIZE, stdin);
 			msg[strlen(msg)-1]='\0';//개행문자 제거
 			//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
-			sprintf(chat,"%1s%10s%s","N",name,msg);
+			sprintf(chat,"%1s%10s%2s","N",name,msg);
 			write(sock, chat, strlen(chat));
 			MyGame.my_turn--;
 			printf("[Debug]writed\n");
@@ -186,7 +186,21 @@ void* recv_msg(void* arg) {
 			}
 			if(msg[0]==78)//N로 시작하는 제어문이 오면
 			{
-				if(strcmp(tmpName,"SERV")==0)printf("GET NUMBER!");
+					//2자리문자열로 온 숫자를 아스키코드표에 따라 숫자로 변환
+					//printf("숫자[%d][%d]",tmpMsg[0],tmpMsg[1]);
+				int NUM=0;
+				if(tmpMsg[0]==32){NUM=tmpMsg[1]-48;}			
+				else{NUM=(10*(tmpMsg[0]-48))+tmpMsg[1]-48;}
+				//printf("받아서 변환된숫자: %d\n",NUM);
+				for(int i=0; i<BOARD_SIZE;i++){
+					for(int j=0; j<BOARD_SIZE;j++){
+						if(MyGame.board[i][j]==NUM){
+							MyGame.bingo[i][j]=1;
+							game_turn++;
+							//printf("smp checker");
+						}
+					}
+				  }
 			}
 			//UI표시부
 			game_print(0);
@@ -215,18 +229,25 @@ void game_print(int any)
 	printf("%c[1;33m", 27); 
 
 	printf("@------ client bingo ------@\n");
-	printf("turn: %d\n", 999);
+	printf("turn: %3d bingo: %3d\n", game_turn, 0);
 	printf("+----+----+----+----+----+\n");
 	for (i = 0; i < BOARD_SIZE; i++)
 	{
 		for (j = 0; j < BOARD_SIZE; j++)
 		{
-			if (board[i][j] == 0)
+			/*
+			if (MyGame.board[i][j] == 0)
 			{
 				printf("| ");
 				printf("%c[1;31m", 27);
 				printf("%2c ", 88);
 				printf("%c[1;33m", 27);
+			}
+			else
+				printf("| %2d ", MyGame.board[i][j]);
+			*/
+			if(MyGame.bingo[i][j]==1){
+				printf("|\033[1;31m %2d \033[1;33m", MyGame.board[i][j]);
 			}
 			else
 				printf("| %2d ", MyGame.board[i][j]);
