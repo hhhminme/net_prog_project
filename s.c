@@ -126,9 +126,12 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 			if(msg[i+1]!=32) {tmpName[j++]=msg[i+1];}
 			}
 		char tmpMsg[100]; //
-			for(int i=0;i<111;i++){
-			tmpMsg[i]=msg[i+11];
+			int k;
+			for(k=0;k<111;k++){
+			tmpMsg[k]=msg[k+11];
 			}
+			tmpMsg[k]='\0';
+			
 	
 		 //순서1.W로 시작하는 숫자내역이왔을때 처리. 맨위에 있어야 무승부 처리 순서에 올바르다.
 		if(msg[0]==87)
@@ -149,18 +152,23 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 		if(msg[0]==67)
 		{
 			char tmpNameMsg[110];
-			char sendMsg[BUF_SIZE] = "C.";
-			//sprintf(tmpNameMsg,"%s",tmpMsg);
+			//tmpNameMsg[sizeof(tmpName)+sizeof(tmpMsg)] = '\0';
 			sprintf(tmpNameMsg,"%s%s",tmpName,tmpMsg);
+			
+			
 			strcpy(msgQ[4],msgQ[3]);
 			strcpy(msgQ[3],msgQ[2]);
 			strcpy(msgQ[2],msgQ[1]);
 			strcpy(msgQ[1],msgQ[0]);
 			strcpy(msgQ[0],tmpNameMsg);
-			strcat(sendMsg, tmpNameMsg);
-		//send_msg(msgQ[0], 1+NAME_SIZE+BUF_SIZE,1);
+						
+			char sendMsg[BUF_SIZE+NAME_SIZE+1+1];
+			sprintf(sendMsg,"%s.%s%s","C",tmpName,tmpMsg);
 
-			send_msg(sendMsg, 1+NAME_SIZE+BUF_SIZE,1);
+			//sprintf(tmpNameMsg,"%s",tmpMsg);
+			//send_msg(msgQ[0], 1+NAME_SIZE+BUF_SIZE,1);
+
+			send_msg(sendMsg, 1+1+NAME_SIZE+BUF_SIZE,11);
 		}
 		
 			//S로 시작하는 네임세팅이 오면
