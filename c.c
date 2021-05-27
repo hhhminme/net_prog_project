@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <netinet/in.h>
-#include <pthread.h>
+#include <pthread.h> 
 
 #define BOARD_SIZE 5
 #define NAME_SIZE 10
@@ -317,7 +317,7 @@ void game_print(int any)
 	else if(MyGame.my_turn==1){printf("its your turn\n");}
 	else {printf("\n");}
 	printf("=====================================\n");
-	printf("5:%s \n4:%s \n3:%s \n2:%s \n1:%s \n",msgQ[0],msgQ[1],msgQ[2],msgQ[3],msgQ[4]);
+	printf("5:%s \n4:%s \n3:%s \n2:%s \n1:%s \n",msgQ[4],msgQ[3],msgQ[2],msgQ[1],msgQ[0]);
 	printf("=====================================\n");
 	printf("C to chat,R to Ready,N to Number Q to quit\n");
 }
