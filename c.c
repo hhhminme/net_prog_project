@@ -36,7 +36,7 @@ struct Game MyGame ={0,};
 
 
 //채팅관련 구조체로 묶을변수
-char chat[NAME_SIZE+BUF_SIZE+1];
+
 char msgQ[5][NAME_SIZE+BUF_SIZE];
 
 //main의 매개변수용 char
@@ -102,16 +102,15 @@ int main(int argc, char* argv[])
 
 void* send_msg(void* arg) {
 	int sock = *((int*)arg);
-	char msg[BUF_SIZE];
-	sprintf(chat,"%1s%10s","S",name);//이름을 최초 1회 보내는걸로 검증한다.
-	write(sock, chat, strlen(chat));
+	char set[111];
+	sprintf(set,"%1s%10s","S",name);//이름을 최초 1회 보내는걸로 검증한다.
+	write(sock, set, strlen(set));
 	while (1) 
 	{	
+		char msg[BUF_SIZE];
+		char chat[NAME_SIZE+BUF_SIZE+2];
 		//배열버퍼, stdin버퍼 초기화
-		for(int i=0; i<BUF_SIZE;i++)
-			{
-				msg[i]='\0';
-			}
+
 		fgets(msg, BUF_SIZE, stdin);
 		if (!strcmp(msg, "q\n")||!strcmp(msg,"Q\n"))//Q를 입력하면 종료로 인식한다.
 		{
@@ -121,13 +120,30 @@ void* send_msg(void* arg) {
 		if(!strcmp(msg, "c\n")||!strcmp(msg,"C\n")) //C를 입력하면 채팅입력창을 출력한다.
 		{
 			printf("type msg: ");
+			/*
+			for(int i=0; i<BUF_SIZE;i++)
+			{
+				msg[i]='\0';
+			}
+			for(int i=0; i<NAME_SIZE+BUF_SIZE+1;i++)
+			{
+				chat[i]='\0';
+			}
+			*/
 			fgets(msg, BUF_SIZE, stdin);
-			msg[strlen(msg)-1]='\0';//개행문자 제거
+			int k=0;
+			int i;
+			for(i=0;i<BUF_SIZE;i++){
+			if(msg[i]==10){k=1;}
+			if(k==1){msg[i]=0;}
+			}
+			
 			//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
 			sprintf(chat,"%1s%10s%s","C",name,msg);
-			
 			write(sock, chat, strlen(chat));
 			printf("[Debug]writed\n");
+			
+			
 		}
 		if(MyGame.my_turn==1&&!strcmp(msg,"N\n")) //내턴일때 N을 입력하면 숫자를 입력받는다.
 		{
@@ -138,7 +154,7 @@ void* send_msg(void* arg) {
 				if(atoi(msg)==0) {
 					continue;
 				} else {
-					msg[strlen(msg)-1]='\0';//개행문자 제거
+					msg[strlen(msg)-1]=10;//개행문자 제거
 					//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
 					sprintf(chat,"%1s%10s%2s","N",name,msg);
 					write(sock, chat, strlen(chat));
