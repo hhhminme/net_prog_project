@@ -39,7 +39,7 @@ struct Clnt{
 	int Bingo;//
 };
 struct Clnt C[MAX_CLNT]; //what a massive
-char msgQ[5][NAME_SIZE+BUF_SIZE]; //SND쓰레드와 RCV쓰레드가 함께 사용하므로 전역변수
+char msgQ[5][NAME_SIZE+BUF_SIZE+1]; //SND쓰레드와 RCV쓰레드가 함께 사용하므로 전역변수
 pthread_mutex_t mutx;
 pthread_t t_id;
 pthread_t t_id2;
@@ -112,9 +112,6 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 	int str_len = 0, i;
 	//int win_check=0; //전역변수로  되었음
 	char msg[1+NAME_SIZE+BUF_SIZE];
-	for(int i=0; i<BUF_SIZE;i++){
-				msg[i]='\0';
-			}
 	//handle_clnt의 메세지 수신부분
 	send_msg("",1,0);//서로 연결이 확정되면 의미없는 문장을 보내서, 클라이언트의 RCV와 game_print를 활성화시킨다
 	while ((str_len = read(clnt_sock, msg, sizeof(msg))) != 0)
@@ -127,7 +124,7 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 			}
 		char tmpMsg[100]; //
 			int k;
-			for(k=0;k<111;k++){
+			for(k=0;k<100;k++){
 			tmpMsg[k]=msg[k+11];
 			}
 			tmpMsg[k]='\0';
@@ -151,9 +148,9 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 		//순서2.C로 시작하는 채팅내역이오면
 		if(msg[0]==67)
 		{
-			char tmpNameMsg[110];
+			char tmpNameMsg[111];
 			//tmpNameMsg[sizeof(tmpName)+sizeof(tmpMsg)] = '\0';
-			sprintf(tmpNameMsg,"%s%s",tmpName,tmpMsg);
+			sprintf(tmpNameMsg,"%s%s%d",tmpName,tmpMsg,'\0');
 			
 			
 			strcpy(msgQ[4],msgQ[3]);
@@ -163,12 +160,12 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 			strcpy(msgQ[0],tmpNameMsg);
 						
 			char sendMsg[BUF_SIZE+NAME_SIZE+1+1];
-			sprintf(sendMsg,"%s.%s%s","C",tmpName,tmpMsg);
+			sprintf(sendMsg,"%s%10s%s","C",tmpName,tmpMsg);
 
 			//sprintf(tmpNameMsg,"%s",tmpMsg);
 			//send_msg(msgQ[0], 1+NAME_SIZE+BUF_SIZE,1);
 
-			send_msg(sendMsg, 1+1+NAME_SIZE+BUF_SIZE,11);
+			send_msg(sendMsg, 1+NAME_SIZE+BUF_SIZE,11);
 		}
 		
 			//S로 시작하는 네임세팅이 오면
@@ -212,6 +209,9 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 					}		
 				}
 			}
+		for(int i=0; i<1+NAME_SIZE+BUF_SIZE;i++){
+			msg[i]='\0';
+		}
 		
 	}
 	//본인이 담당하면 클라이언트가 끊어졌다면, 서버에서 클라이언트의 정보를 지우고 재설정한다.
