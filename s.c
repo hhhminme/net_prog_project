@@ -157,7 +157,7 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 			strcpy(msgQ[2],msgQ[1]);
 			strcpy(msgQ[1],msgQ[0]);
 			strcpy(msgQ[0],tmpNameMsg);
-			strcat(sendMsg, msgQ[0]);
+			strcat(sendMsg, tmpNameMsg);
 		//send_msg(msgQ[0], 1+NAME_SIZE+BUF_SIZE,1);
 
 			send_msg(sendMsg, 1+NAME_SIZE+BUF_SIZE,1);
