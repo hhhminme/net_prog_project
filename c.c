@@ -131,12 +131,7 @@ void* send_msg(void* arg) {
 			}
 			*/
 			fgets(msg, BUF_SIZE, stdin);
-			int k=0;
-			int i;
-			for(i=0;i<BUF_SIZE;i++){
-			if(msg[i]==10){k=1;}
-			if(k==1){msg[i]=0;}
-			}
+			msg[strlen(msg)-1]='\0';
 			
 			//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
 			sprintf(chat,"%1s%10s%s","C",name,msg);
@@ -154,8 +149,7 @@ void* send_msg(void* arg) {
 				if(atoi(msg)==0) {
 					continue;
 				} else {
-					msg[strlen(msg)-1]=10;//개행문자 제거
-					//입력받은 msg로 chat내용을 세그먼트화 한다. (채팅-10자리이름(공백으로 줄맞춤)-메세지내용)
+					msg[strlen(msg)-1]=10;//개행문자
 					sprintf(chat,"%1s%10s%2s","N",name,msg);
 					write(sock, chat, strlen(chat));
 					MyGame.my_turn--;
@@ -212,15 +206,12 @@ void* recv_msg(void* arg) {
 				}
 			}
 			if(msg[0]==67) //C로 시작하는 채팅내역이오면
-			{		
-				for(int i=2; i<BUF_SIZE+1; i++) {
-					msg[i-2] = msg[i];
-				}
+			{	
 				strcpy(msgQ[4],msgQ[3]);
 				strcpy(msgQ[3],msgQ[2]);
 				strcpy(msgQ[2],msgQ[1]);
 				strcpy(msgQ[1],msgQ[0]);
-				strcpy(msgQ[0], msg);
+				sprintf(msgQ[0],"%s%s",tmpName,tmpMsg);
 			}
 			if(msg[0]==84)//T로 시작하는 제어문이 오면
 			{
