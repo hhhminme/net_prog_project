@@ -150,7 +150,7 @@ void* handle_clnt(void* arg) {//클라이언트를 1대1로 담당하는 쓰레�
 		{
 			char tmpNameMsg[111];
 			//tmpNameMsg[sizeof(tmpName)+sizeof(tmpMsg)] = '\0';
-			sprintf(tmpNameMsg,"%s%s%d",tmpName,tmpMsg,'\0');
+			sprintf(tmpNameMsg,"%s%s",tmpName,tmpMsg);
 			
 			
 			strcpy(msgQ[4],msgQ[3]);
