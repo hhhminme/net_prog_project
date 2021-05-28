@@ -304,7 +304,7 @@ void* handle_game(void* arg){
 					}
 				}
 			}
-			printf("[Debug]입력검증끝");
+			//printf("[Debug]입력검증끝");
 			win_check=0;
 		}
 		pthread_mutex_unlock(&mutx);
