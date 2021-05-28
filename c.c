@@ -223,7 +223,7 @@ void* recv_msg(void* arg) {
 					//printf("숫자[%d][%d]",tmpMsg[0],tmpMsg[1]);
 				int NUM=0;
 				printf("서버입력받아 변환할 값 %d %d",tmpMsg[0],tmpMsg[1]);
-				if(tmpMsg[0]==32){NUM=tmpMsg[1]-48;}			
+				if(tmpMsg[1]==10){NUM=tmpMsg[0]-48;}			
 				else{NUM=(10*(tmpMsg[0]-48))+tmpMsg[1]-48;}
 				//printf("받아서 변환된숫자: %d\n",NUM);
 				for(int i=0; i<BOARD_SIZE;i++){
