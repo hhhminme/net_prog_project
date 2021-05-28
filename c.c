@@ -222,7 +222,7 @@ void* recv_msg(void* arg) {
 					//2자리문자열로 온 숫자를 아스키코드표에 따라 숫자로 변환
 					//printf("숫자[%d][%d]",tmpMsg[0],tmpMsg[1]);
 				int NUM=0;
-				pirntf("서버입력받아 변환할 값 %d %d",tmpMsg[0],tmpMsg[1]);
+				pintf("서버입력받아 변환할 값 %d %d",tmpMsg[0],tmpMsg[1]);
 				if(tmpMsg[0]==32){NUM=tmpMsg[1]-48;}			
 				else{NUM=(10*(tmpMsg[0]-48))+tmpMsg[1]-48;}
 				//printf("받아서 변환된숫자: %d\n",NUM);
