@@ -251,7 +251,10 @@ void* recv_msg(void* arg) {
 					write(sock, FLAG, strlen(FLAG));
 					printf("[Debug]writed\n");
 				}
-			}			
+			}
+			for(int i=0; i<1;BUF_SIZE;i++){
+				msg[i]='\0';
+			}
 			//UI표시부
 			game_print(0);
 			
