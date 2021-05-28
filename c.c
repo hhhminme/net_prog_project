@@ -252,7 +252,7 @@ void* recv_msg(void* arg) {
 					printf("[Debug]writed\n");
 				}
 			}
-			for(int i=0; i<1;BUF_SIZE;i++){
+			for(int i=0; i<BUF_SIZE;i++){
 				msg[i]='\0';
 			}
 			//UI표시부
