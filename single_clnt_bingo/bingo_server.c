@@ -3,10 +3,15 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #define BOARD_SIZE 5
 #define BACKLOG 3 //연결대기 큐 숫자
+#define MAX_CLNT 256
 
 void socket_settings(char *port); //소켓의 세팅
 void error_check(int validation, char *message); //실행 오류 검사
@@ -18,6 +23,8 @@ void client_turn(); //클라이언트 차례
 void board_X(int board[][BOARD_SIZE], int number); //빙고판에 X 체크
 void game_run(); //게임 진행 및 승리여부 체크
 int bingo_check(int board[][BOARD_SIZE]); //빙고 줄 검사, 게임 종료조건 검사
+void read_childproc(int sig);
+void* handle_clnt(void *arg);
 
 int server_board[BOARD_SIZE][BOARD_SIZE]; //서버 보드판 배열
 int client_board[BOARD_SIZE][BOARD_SIZE]; //클라이언트 보드판 배열
@@ -30,6 +37,11 @@ int turn[4]; //어플리케이션 프로토콜 정의
 	turn[2]=서버 빙고 수
 	turn[3]=게임종료여부(0=진행중, 1=클라이언트 승리, 2=서버 승리, 3=무승부)
 */
+
+int clnt_cnt = 0;
+int clnt_socks[MAX_CLNT];
+pthread_mutex_t mutx;
+pthread_t t_id;
 
 void main(int argc, char *argv[])
 {
@@ -48,34 +60,7 @@ void main(int argc, char *argv[])
 	client_game_init();
 	game_print(0);
 
-	for(i=1;i<=BOARD_SIZE*BOARD_SIZE;i++)
-	{
-		if(i%2==1)
-			client_turn();
-		else
-		{
-			sleep(1); //대전을 체감하기위한 1초의 딜레이
-			server_turn();
-		}
-
-		game_print(i);
-		for(j=0;j<4;j++) printf("turn[%d]=%d\n", j, turn[j]); //디버깅용
-		if(turn[3]==1)
-		{
-			printf("클라이언트 승리\n");
-			break;
-		}
-		else if(turn[3]==2)
-		{
-			printf("서버 승리\n");
-			break;
-		}
-		else if(turn[3]==3)
-		{
-			printf("무승부\n");
-			break;
-		}
-	}
+	handle_clnt(argv[1]);
 
 	close(client_fd);
 	close(server_fd);
@@ -84,6 +69,7 @@ void main(int argc, char *argv[])
 }
 void socket_settings(char *port)
 {
+	int state;
 	struct sockaddr_in server_adr, client_adr;
 	socklen_t client_adr_size;
 
@@ -99,12 +85,22 @@ void socket_settings(char *port)
 	error_check(bind(server_fd, (struct sockaddr *)&server_adr,sizeof(server_adr)), "소켓주소 할당"); //주소 바인딩
 	error_check(listen(server_fd, BACKLOG), "연결요청 대기");
 
-	client_adr_size=sizeof(client_adr);
+	while(1) {
+		client_adr_size=sizeof(client_adr);
+		client_fd=accept(server_fd, (struct sockaddr *)&client_adr, &client_adr_size); //특정 클라이언트와 데이터 송수신용 TCP소켓 생성
 
-	client_fd=accept(server_fd, (struct sockaddr *)&client_adr, &client_adr_size); //특정 클라이언트와 데이터 송수신용 TCP소켓 생성
-	printf("* %s:%d의 연결요청\n", inet_ntoa(client_adr.sin_addr), ntohs(client_adr.sin_port));
-	error_check(client_fd, "연결요청 승인");
+		pthread_mutex_lock(&mutx);
+		clnt_socks[clnt_cnt++] = client_fd;
+		pthread_mutex_unlock(&mutx);
+
+		pthread_create(&t_id, NULL, handle_clnt, (void*)&client_adr);
+		pthread_detach(t_id);
+
+		printf("* %s:%d의 연결요청\n", inet_ntoa(client_adr.sin_addr), ntohs(client_adr.sin_port));	
+		error_check(client_fd, "연결요청 승인");
+	}
 }
+
 void error_check(int validation, char* message)
 {
 	if(validation==-1)
@@ -175,7 +171,7 @@ void game_print(int turn_count)
 {
 	int i, j;
 
-	system("clear"); //동적 효과를 위한 화면 초기화
+//	system("clear"); //동적 효과를 위한 화면 초기화
 	printf("%c[1;33m",27); //터미널 글자색을 노랑색으로 변경
 	
 	printf("@------ 서버 빙고판 ------@\n");
@@ -286,4 +282,46 @@ void game_run()
 		turn[3]=1; //클라이언트 승리
 	else if(turn[2]>=5)
 		turn[3]=2; //서버 승리
+}
+
+void read_childproc(int sig)
+{
+	pid_t pid;
+	int status;
+	pid = waitpid(-1, &status, WNOHANG);
+	printf("removed proc id: %d \n", pid);
+}
+
+void* handle_clnt(void *arg) {
+	int clnt_sock=*((int*)arg);
+	int i, j;
+	for(i=1;i<=BOARD_SIZE*BOARD_SIZE;i++)
+	{
+		if(i%2==1)
+			client_turn();
+		else
+		{
+			sleep(1); //대전을 체감하기위한 1초의 딜레이
+			server_turn();
+		}
+
+		game_print(i);
+		for(j=0;j<4;j++) printf("turn[%d]=%d\n", j, turn[j]); //디버깅용
+		if(turn[3]==1)
+		{
+			printf("클라이언트 승리\n");
+			break;
+		}
+		else if(turn[3]==2)
+		{
+			printf("서버 승리\n");
+			break;
+		}
+		else if(turn[3]==3)
+		{
+			printf("무승부\n");
+			break;
+		}
+	}
+
 }

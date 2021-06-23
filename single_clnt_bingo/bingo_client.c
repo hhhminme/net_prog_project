@@ -5,15 +5,22 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <pthread.h>
+
 #define BOARD_SIZE 5
+
+struct SendToCount {
+	int count;
+};
 
 void socket_settings(char *ip, char *port); //소켓의 세팅
 void error_check(int validation, char *message); //실행 오류 검사
 int value_check(int number); //점수 유효값 검사
 void game_init(); //빙고판 생성
 void game_print(int number, int turn_count); //게임진행
-void server_turn(); //서버 차례
-void client_turn(int turn_count); //클라이언트 차례
+void* server_turn(); //서버 차례
+void* client_turn(void *arg);  //클라이언트 차례
 
 int board[BOARD_SIZE][BOARD_SIZE]; //보드판 배열
 int check_number[BOARD_SIZE*BOARD_SIZE+1]={0}; //중복검사용 배열
@@ -26,9 +33,13 @@ int turn[4]; //어플리케이션 프로토콜 정의
 	turn[3]=게임종료여부(0=진행중, 1=클라이언트 승리, 2=서버 승리, 3=무승부)
 */
 
+pthread_t snd_thread, rcv_thread;
+void* thread_return;
+
 void main(int argc, char *argv[])
 {
 	int i, j;
+	struct SendToCount *sendToCount = malloc(sizeof(struct SendToCount));
 
 	if(argc!=3)
 	{
@@ -41,13 +52,16 @@ void main(int argc, char *argv[])
 	printf("빙고게임을 시작합니다.\n");
 	game_init();
 	game_print(0, 0);
-	
+
 	for(i=1;i<BOARD_SIZE*BOARD_SIZE;i++)
 	{
-		if(i%2==1)
-			client_turn(i);
-		else
+		if(i%2==1) {
+			sendToCount->count = i;
+			client_turn((void*) sendToCount);
+		}
+		else {
 			server_turn();
+		}
 
 		game_print(turn[0], i);
 		//for(j=0;j<4;j++) printf("turn[%d]=%d\n", j, turn[j]); //디버깅용
@@ -85,7 +99,12 @@ void socket_settings(char *ip, char *port)
 	server_adr.sin_addr.s_addr=inet_addr(ip); //IP 할당
 
 	error_check(connect(socket_fd, (struct sockaddr *)&server_adr, sizeof(server_adr)), "연결 요청");
+	pthread_create(&snd_thread, NULL, server_turn, (void*)&socket_fd);
+	pthread_create(&rcv_thread, NULL, client_turn, (void*)&socket_fd);
+	pthread_join(snd_thread, &thread_return);
+	pthread_join(rcv_thread, &thread_return);
 }
+
 void error_check(int validation, char* message)
 {
 	if(validation==-1)
@@ -159,7 +178,7 @@ void game_print(int number, int turn_count)
 		printf("빙고수: %d\n", turn[1]);
 	}
 }
-void server_turn()
+void* server_turn()
 {
 	int recv_len=0;
 
@@ -175,11 +194,12 @@ void server_turn()
 	}
 	check_number[turn[0]]=1;
 }
-void client_turn(int turn_count)
+void* client_turn(void *arg)
 {
+	struct SendToCount* my_send_to_count = (struct SendToCount*)arg;
 	int array_len, recv_len=0;;
 
-	printf("%d턴 숫자를 입력해주세요 : ", turn_count);
+	printf("%d턴 숫자를 입력해주세요 : ", my_send_to_count->count);
 	scanf("%d", &turn[0]);
 	turn[0]=value_check(turn[0]);
 	check_number[turn[0]]=1;
