@@ -83,7 +83,7 @@ DRAW!! 라고 무승부라는 결과가 출력되게 된다.
 ![image](https://user-images.githubusercontent.com/54930877/123050486-baf96e80-d43b-11eb-8d19-91f31d5e1ccf.png)
 
 
-*경진* - 서브 개발 및 문서화
+*경진* - 발표 영상 제작 및 ppt 
 
 ![image](https://user-images.githubusercontent.com/54930877/123050478-b92fab00-d43b-11eb-81b0-8e706b14ed82.png)
 
